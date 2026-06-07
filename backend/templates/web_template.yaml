@@ -41,23 +41,35 @@ validation_rules:
     docker_image:
       type: string
       required: true
-      pattern: "^(?!.*:latest).*$" # Prohibición explícitamente auditable de la etiqueta latest
+      # No usamos pattern con lookahead aquí porque Pydantic v2 usa el motor Rust
+      # que no soporta lookahead/lookbehind. La restricción :latest se valida
+      # en security_signatures (que usa el re de Python, sin esa limitación).
   security_signatures:
+    - name: no_latest_tag
+      # Python re SI soporta lookahead, a diferencia de Pydantic v2 (motor Rust)
+      pattern: "docker_image.*:latest"
+      severity: insecure
+      weight: 2.0
+      message: "El docker_image usa la etiqueta :latest — debes fijar una versión concreta (ej. :v1.0)."
     - name: exposed_credentials
       pattern: "(?i)(password|passwd|api_key|secret)\\s*[:=]\\s*['\"][a-zA-Z0-9_.-]+['\"]"
       severity: insecure
+      weight: 1.5
       message: "Se detectaron credenciales hardcodeadas en el cuerpo del reto."
     - name: exposed_private_keys
       pattern: "-----BEGIN [A-Z ]*PRIVATE KEY-----"
       severity: insecure
+      weight: 2.0
       message: "Se expuso una clave privada dentro del archivo de configuración."
     - name: naked_flag_exposure
       pattern: "FLAG\\{[a-zA-Z0-9_.-]+\\}"
       severity: insecure
+      weight: 2.0
       message: "La bandera (flag) del reto está expuesta directamente en el texto plano."
     - name: credentials_in_url
       pattern: "https?:\\/\\/[^:]+:[^@]+@[a-zA-Z0-9.-]+"
       severity: insecure
+      weight: 1.5
       message: "Se detectaron credenciales embebidas directamente en el formato de la URL."
   semantic_checks:
     - id: web_solvability

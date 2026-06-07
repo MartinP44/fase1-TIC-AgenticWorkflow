@@ -3,11 +3,22 @@ Schema Compiler Node — compiles dynamic Pydantic validator models on the fly
 based on the YAML template corresponding to the detected challenge domain.
 """
 import os
+import re
 import yaml
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, Literal
 from pydantic import BaseModel, Field, create_model, StringConstraints, ValidationError
 from typing_extensions import Annotated
 from agents.state import CTFReviewState, AgentStep
+
+
+def _has_lookaround(pattern: str) -> bool:
+    """
+    Detecta si un regex contiene lookahead o lookbehind.
+    Pydantic v2 usa el motor de Rust (crate `regex`) que NO los soporta.
+    Si el pattern tiene lookaround, debe moverse a security_signatures
+    (que usa el módulo `re` de Python estándar, sin esa limitación).
+    """
+    return bool(re.search(r'\(\?[=!<]', pattern))
 
 
 def compile_pydantic_model(yaml_config: Dict[str, Any], force_strict: bool = False) -> Type[BaseModel]:
@@ -50,10 +61,15 @@ def compile_pydantic_model(yaml_config: Dict[str, Any], force_strict: bool = Fal
                 pass
         
         # String constraints (pattern matching)
+        # IMPORTANTE: Pydantic v2 usa el motor de regex de Rust, que NO soporta
+        # lookahead (?=...), lookbehind (?<=...) ni lookbehind negativo (?<!...).
+        # Si el pattern tiene lookahead/behind, lo omitimos aquí — la regla
+        # equivalente debe estar en security_signatures (que usa Python re).
         if python_type is str:
             pattern = rules.get("pattern")
-            if pattern:
+            if pattern and not _has_lookaround(pattern):
                 python_type = Annotated[str, StringConstraints(pattern=pattern)]
+
                 
         elif python_type in [int, float]:
             minimum = rules.get("minimum")
