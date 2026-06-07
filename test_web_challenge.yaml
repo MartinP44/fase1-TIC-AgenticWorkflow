@@ -1,0 +1,11 @@
+domain: web
+url: "http://example.com"
+port: 8080
+http_method: "POST"
+endpoint: "/api/v1/login"
+technology_stack: "Node.js/Express"
+authentication_required: true
+session_type: "JWT"
+size: "50MB"
+ram: "256MB"
+docker_image: "myregistry/chall-web-xss:v1.0.0" # Cumple con no usar :latest

@@ -1,0 +1,119 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CTF Challenge Template — Categoría: FORENSIC / DFIR
+# Compatible con el analizador multi-agente (extractor → classifier → forensic_agent)
+#
+# Campos con (*) son OBLIGATORIOS (error si faltan).
+# Campos con (~) son RECOMENDADOS (warning si faltan).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Metadatos generales ───────────────────────────────────────────────────────
+title: "Nombre del Reto"                  # (*) Título descriptivo del caso
+author: "Tu Nombre / Handle"              # (~) Autor del reto
+category: forensic                        # (*) Categoría principal
+difficulty: medium                        # (~) easy | medium | hard | expert
+
+# ── Tipo y archivo del artefacto principal ────────────────────────────────────
+artifact_type: memory_dump                # (*) pcap | memory_dump | disk_image | log | image | zip
+artifact_file: "evidence.zip"             # (*) Nombre del archivo a distribuir a los jugadores
+
+# ── Etiquetas temáticas ───────────────────────────────────────────────────────
+tags:                                     # (~) Ayudan a categorizar y filtrar en la plataforma
+  - memory                               # Ejemplos: memory, network, log-analysis,
+  - log-analysis                         #           anti-forensics, steganography,
+  - dfir                                 #           disk, pcap, mobile
+
+# ── Tamaño del artefacto ──────────────────────────────────────────────────────
+size: "~250MB"                            # (~) Tamaño aproximado del archivo de evidencia
+
+# ── Herramientas necesarias ───────────────────────────────────────────────────
+required_tools:                           # (~) Lista de herramientas para resolver el reto
+  - Volatility3                          # Análisis de memoria RAM
+  - Wireshark                            # Análisis de capturas de red (.pcap)
+  - Autopsy                              # Análisis de imágenes de disco
+  - TestDisk                             # Recuperación de archivos eliminados
+  - grep                                 # Búsqueda en logs
+  - exiftool                             # Metadata de archivos
+  # Agrega o elimina según el reto
+
+# ── Descripción narrativa del caso ────────────────────────────────────────────
+description: |
+  [NARRATIVA DEL CASO]
+
+  Escribe aquí el contexto de la investigación: quiénes son los involucrados,
+  qué incidente ocurrió y por qué se solicita el análisis forense.
+
+  Ejemplo:
+    Un empleado fue despedido y al día siguiente el repositorio corporativo
+    apareció vacío. Los administradores sospechan acceso no autorizado remoto
+    durante el fin de semana.
+
+  Incluye solo los hechos que el jugador necesita conocer para orientar su
+  investigación — NO reveles la solución aquí.
+
+# ── Descripción de los artefactos incluidos ───────────────────────────────────
+artifacts:
+  - name: "auth.log"
+    type: log
+    description: "Extracto del log de autenticación del servidor Linux (/var/log/auth.log)"
+
+  - name: "memory.raw"
+    type: memory_dump
+    description: "Volcado de memoria RAM (formato raw) de la laptop del sospechoso"
+
+  # Agrega tantos artefactos como necesite el reto:
+  # - name: "capture.pcap"
+  #   type: pcap
+  #   description: "Captura de tráfico de red durante el incidente"
+  #
+  # - name: "disk.img"
+  #   type: disk_image
+  #   description: "Imagen forense del disco duro del servidor"
+
+# ── Objetivos / Preguntas a responder ─────────────────────────────────────────
+objectives:
+  - "Pregunta 1: ¿Cuál es la dirección IP de origen del atacante?"
+  - "Pregunta 2: ¿Qué cuenta de usuario fue comprometida?"
+  - "Pregunta 3: ¿Qué herramienta/técnica usó el atacante para evadir detección?"
+  - "Pregunta 4: [Pregunta técnica específica del artefacto]"
+  # Mantén entre 3 y 6 objetivos para retos de dificultad media.
+  # Cada objetivo debe poder responderse directamente con la evidencia aportada.
+
+# ── Pistas para el analista ───────────────────────────────────────────────────
+hints:
+  - "Pista 1: Cruza las IPs entre los distintos artefactos."
+  - "Pista 2: Presta atención a los timestamps — los atacantes suelen actuar de madrugada."
+  - "Pista 3: [Pista específica sobre el comando o herramienta clave]"
+  # Las pistas deben orientar sin resolver. Evita revelar el método exacto.
+
+# ── Ubicación de la flag ──────────────────────────────────────────────────────
+# REGLA CRÍTICA: La flag NUNCA debe aparecer en texto plano en esta plantilla.
+# Debe estar embebida dentro del artefacto (memory.raw, pcap, imagen, etc.)
+# y recuperarse mediante análisis forense.
+flag_location: "La flag está embebida en el artefacto [nombre] — no se expone en esta plantilla"
+# Formato estándar de flag: CTF{...}
+# Para retos multi-parte, especifica la estructura esperada en flag_location.
+
+# ── Puntuación ────────────────────────────────────────────────────────────────
+scoring:
+  points: 400                             # Puntos base (ajusta según dificultad)
+  dynamic: true                           # true = se reduce con cada solución; false = fijo
+
+# ── Contexto técnico para el organizador (NO lo ven los jugadores) ─────────────
+# Esta sección es informativa para el equipo de CTF. No se distribuye.
+_organizer_notes:
+  solution_summary: |
+    Describe aquí la solución paso a paso:
+    1. El jugador analiza X artefacto con Y herramienta.
+    2. Encuentra Z evidencia en el campo W.
+    3. Extrae la flag con el comando: volatility -f memory.raw linux.strings | grep CTF{
+
+  flag_value: "CTF{REDACTED_FLAG_AQUI}"   # Flag real — NUNCA subir sin redactar
+
+  tested_with:
+    - "Volatility 3.2.5"
+    - "Python 3.11"
+    - "Ubuntu 22.04"
+
+  known_gotchas:
+    - "El perfil de Volatility debe ser Linux — no Windows."
+    - "El log está en UTC, ajustar según zona horaria del jugador."

@@ -1,0 +1,41 @@
+domain: forensic
+metadata:
+  version: "2.0.0"
+  description: "Plantilla unificada para retos forenses, análisis de red, memoria y logs."
+configuration:
+  severity_mode: lenient # Predeterminado a flexible por la naturaleza desestructurada de los artefactos
+validation_rules:
+  fields:
+    artifact_type:
+      type: string
+      required: true
+      allowed_values: ["pcap", "image", "memory_dump", "log", "disk"]
+    artifact_file:
+      type: string
+      required: true
+    required_tools:
+      type: array
+      required: false
+    difficulty:
+      type: string
+      required: true
+    tags:
+      type: array
+      required: true
+    author:
+      type: string
+      required: true
+  security_signatures:
+    - name: flag_exposed_in_template
+      pattern: "(?i)flag\\{[a-zA-Z0-9_.-]+\\}"
+      severity: insecure
+      message: "La bandera nunca debe estar escrita en la plantilla del reto; debe estar embebida exclusivamente en el artefacto forense."
+  warnings_rules:
+    - name: missing_recommended_tools
+      condition: "not required_tools or len(required_tools) == 0"
+      message: "Se recomienda documentar las herramientas necesarias para resolver el reto (ej. Wireshark, Volatility)."
+  semantic_checks:
+    - id: forensic_solvability
+      criterion: "Verificación de la integridad del análisis forense."
+      prompt: "Revise si el tipo de artefacto (`artifact_type`) coincide con la dificultad declarada y las herramientas recomendadas."
+      weight: 0.8

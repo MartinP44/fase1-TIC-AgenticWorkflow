@@ -1,0 +1,45 @@
+domain: crypto
+metadata:
+  version: "2.0.0"
+  description: "Plantilla unificada de validación para retos basados en primitivas criptográficas."
+configuration:
+  severity_mode: strict
+validation_rules:
+  fields:
+    algorithm:
+      type: string
+      required: true
+    key_size:
+      type: integer
+      required: true
+    challenge_files:
+      type: array
+      required: true
+    solve_script:
+      type: string
+      required: true
+  security_signatures:
+    - name: exposed_private_keys
+      pattern: "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+      severity: insecure
+      message: "Clave privada expuesta detectada en la definición del reto criptográfico."
+    - name: flag_in_body
+      pattern: "(?i)flag\\{[a-zA-Z0-9_.-]+\\}"
+      severity: insecure
+      message: "La bandera está visible en texto plano dentro del cuerpo de la plantilla."
+    - name: weak_algorithm_md5
+      pattern: "(?i)(md5|sha1|des)"
+      severity: insecure # Regla de negocio crítica
+      message: "Uso prohibido de algoritmos vulnerables (MD5/SHA1/DES) como primitiva principal."
+  warnings_rules:
+    - name: rsa_insufficient_key_size
+      condition: "algorithm == 'RSA' and key_size < 2048"
+      message: "Advertencia: El tamaño de clave para RSA debe ser de al menos 2048 bits."
+    - name: aes_insufficient_key_size
+      condition: "algorithm == 'AES' and key_size < 128"
+      message: "Advertencia: El tamaño de clave para AES debe ser de al menos 128 bits."
+  semantic_checks:
+    - id: crypto_correctness
+      criterion: "Evaluación matemática de la implementación criptográfica."
+      prompt: "Verifique si el script de solución (`solve_script`) es teóricamente viable para recuperar el texto en claro bajo los parámetros del algoritmo configurado."
+      weight: 1.2

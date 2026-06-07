@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Entorno
+.env
+*.env.local
+
+# Node / Frontend
+node_modules/
+.vite/
+dist/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Archivos temporales de prueba
+backend/test_*.py
+backend/*.zip
+
+# Bases de datos locales
+*.db
+*.sqlite
+
+# Archivos binarios grandes (imágenes Docker, volcados)
+*.raw
+*.img
+*.vmem

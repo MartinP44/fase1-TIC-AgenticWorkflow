@@ -1,0 +1,55 @@
+title: "El Empleado Despechado"
+author: "CTF Author"
+category: forensic
+difficulty: medium
+
+artifact_type: memory_dump
+artifact_file: "evidence.zip"
+
+tags:
+  - memory
+  - network
+  - log-analysis
+  - anti-forensics
+
+size: "~250MB"
+
+required_tools:
+  - Volatility3
+  - Wireshark
+  - grep
+  - TestDisk
+
+description: |
+  Un desarrollador de software fue despedido el viernes a las 17:00 de una startup tecnológica.
+  El lunes por la mañana, los administradores descubrieron que el repositorio de código fuente
+  fue completamente eliminado del servidor central.
+
+  Se te proporcionan dos artefactos de evidencia:
+  1. Un extracto del archivo de log de autenticación del servidor Linux (/var/log/auth.log)
+  2. Un volcado de memoria RAM (.raw) de la laptop del sospechoso
+
+artifacts:
+  - name: auth.log
+    type: log
+    description: "Fragmento del log de autenticación del servidor de producción"
+  - name: memory.raw
+    type: memory_dump
+    description: "Volcado de memoria RAM de la laptop del sospechoso"
+
+objectives:
+  - "Identificar la hora exacta y la IP de origen del acceso comprometido al servidor"
+  - "Determinar la cuenta de usuario utilizada para el ataque"
+  - "Identificar la tecnología de anonimato utilizada y el PID del proceso responsable"
+  - "Determinar el comando de borrado seguro (shredding) que pudo haber utilizado el atacante"
+
+hints:
+  - "Compara la IP de destino en los logs del servidor con las conexiones del reporte netscan"
+  - "Verifica las marcas de tiempo en auth.log y cruza con los timestamps de pslist"
+  - "El comando de borrado seguro tiene un nombre relacionado con 'triturar' en inglés"
+
+flag_location: "La flag está embebida en el artefacto memory.raw — no se expone en esta plantilla"
+
+scoring:
+  points: 400
+  dynamic: true

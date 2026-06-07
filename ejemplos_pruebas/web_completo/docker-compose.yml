@@ -1,0 +1,12 @@
+services:
+  sqli-basic:
+    build: .
+    image: ctf-local/sqli-basic:v1.0
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+    read_only: false
+    tmpfs:
+      - /tmp

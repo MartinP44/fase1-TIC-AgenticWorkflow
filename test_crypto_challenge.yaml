@@ -1,0 +1,7 @@
+domain: crypto
+algorithm: "RSA"
+key_size: 1024 # Disparará la regla de advertencia rsa_insufficient_key_size (< 2048)
+challenge_files:
+  - "ciphertext.enc"
+  - "public_key.pem"
+solve_script: "solve.py"

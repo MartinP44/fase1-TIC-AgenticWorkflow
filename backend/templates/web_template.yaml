@@ -1,0 +1,66 @@
+domain: web
+metadata:
+  version: "2.0.0"
+  description: "Plantilla unificada de validación para retos de explotación web e infraestructura."
+configuration:
+  severity_mode: strict # Cambia a 'lenient' en archivos no estructurados
+validation_rules:
+  fields:
+    url:
+      type: string
+      required: true
+      pattern: "^https?:\\/\\/[a-zA-Z0-9.-]+(:[0-9]+)?$"
+    port:
+      type: integer
+      required: true
+      minimum: 1
+      maximum: 65535
+    http_method:
+      type: string
+      required: true
+      allowed_values: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+    endpoint:
+      type: string
+      required: true
+    technology_stack:
+      type: string
+      required: true
+    authentication_required:
+      type: boolean
+      required: true
+    session_type:
+      type: string
+      required: true
+      allowed_values: ["COOKIE", "JWT", "STATELESS", "NONE", "SESSION", "TOKEN", "OAUTH"]
+    size:
+      type: string
+      required: false
+    ram:
+      type: string
+      required: false
+    docker_image:
+      type: string
+      required: true
+      pattern: "^(?!.*:latest).*$" # Prohibición explícitamente auditable de la etiqueta latest
+  security_signatures:
+    - name: exposed_credentials
+      pattern: "(?i)(password|passwd|api_key|secret)\\s*[:=]\\s*['\"][a-zA-Z0-9_.-]+['\"]"
+      severity: insecure
+      message: "Se detectaron credenciales hardcodeadas en el cuerpo del reto."
+    - name: exposed_private_keys
+      pattern: "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+      severity: insecure
+      message: "Se expuso una clave privada dentro del archivo de configuración."
+    - name: naked_flag_exposure
+      pattern: "FLAG\\{[a-zA-Z0-9_.-]+\\}"
+      severity: insecure
+      message: "La bandera (flag) del reto está expuesta directamente en el texto plano."
+    - name: credentials_in_url
+      pattern: "https?:\\/\\/[^:]+:[^@]+@[a-zA-Z0-9.-]+"
+      severity: insecure
+      message: "Se detectaron credenciales embebidas directamente en el formato de la URL."
+  semantic_checks:
+    - id: web_solvability
+      criterion: "Análisis de solubilidad de la aplicación web."
+      prompt: "Evalúe si la descripción de la vulnerabilidad y la pila tecnológica (`technology_stack`) son coherentes y permiten resolver el reto."
+      weight: 1.0

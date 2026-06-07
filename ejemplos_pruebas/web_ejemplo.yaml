@@ -1,0 +1,16 @@
+domain: web
+url: "http://chall.local"
+port: 80
+http_method: "GET"
+endpoint: "/"
+technology_stack: "PHP"
+authentication_required: false
+session_type: "NONE"
+size: "10MB"
+ram: "128MB"
+docker_image: "myreg/insecure-web:v1.0"
+# Este reto disparará un error crítico de seguridad debido a credenciales expuestas
+# y resultará en un veredicto de INSEGURO
+developer_notes: |
+  El panel de administración tiene una contraseña por defecto hardcodeada para las pruebas:
+  password = "SuperSecurePassword123!"

@@ -1,0 +1,11 @@
+domain: web
+url: "http://localhost"
+port: 8090
+http_method: "POST"
+endpoint: "/login"
+technology_stack: "Flask/Python"
+authentication_required: true
+session_type: "COOKIE"
+size: "45MB"
+ram: "256MB"
+docker_image: "ctf-local/sqli-basic:v1.0"
