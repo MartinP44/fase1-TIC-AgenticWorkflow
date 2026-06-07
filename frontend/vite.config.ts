@@ -14,7 +14,21 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+        // SSE / streaming: desactivar buffering y aumentar timeout
+        ws: false,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (_proxyReq, req) => {
+            // Evitar que el proxy bufferice respuestas SSE
+            if (req.headers.accept?.includes('text/event-stream')) {
+              _proxyReq.setHeader('Cache-Control', 'no-cache')
+            }
+          })
+          proxy.on('error', (err) => {
+            console.error('[vite-proxy] error:', err.message)
+          })
+        },
       },
     },
   },
 })
+

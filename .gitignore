@@ -40,7 +40,8 @@ backend/*.zip
 *.db
 *.sqlite
 
-# Archivos binarios grandes (imágenes Docker, volcados)
+# Archivos binarios grandes (imágenes Docker, volcados, ZIPs)
+*.zip
 *.raw
 *.img
 *.vmem

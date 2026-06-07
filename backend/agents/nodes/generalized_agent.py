@@ -8,6 +8,7 @@ import json
 import ollama
 from typing import Dict, Any, List
 from agents.state import CTFReviewState, AgentStep
+from agents.llm_debug import llm_chat
 
 
 OLLAMA_HOST  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -198,12 +199,14 @@ You MUST respond ONLY with a valid JSON object in this format:
     preview = raw_content[:4000] if len(raw_content) > 4000 else raw_content
     try:
         client = ollama.Client(host=OLLAMA_HOST)
-        response = client.chat(
+        response = llm_chat(
+            client,
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": f"Analyze this CTF challenge description/template:\n\n{preview}"},
             ],
+            node_name="generalized_agent",
             format="json",
             options={"temperature": 0.1},
         )

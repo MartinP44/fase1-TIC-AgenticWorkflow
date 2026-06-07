@@ -119,31 +119,38 @@ async def stream_review(job_id: str):
                 parsed_metadata=None,
             )
 
-            # Run graph — stream step by step
-            seen_steps = 0
+            # ── Streaming nodo a nodo con astream ─────────────────────────
+            # astream() emite un dict por cada nodo que finaliza, con las
+            # claves del estado que ese nodo modificó.
+            last_state: dict = {}
+            emitted_nodes: set = set()
 
-            # Run the graph in a thread to avoid blocking
-            loop = asyncio.get_event_loop()
-            final_state = await loop.run_in_executor(
-                None,
-                lambda: ctf_graph.invoke(initial_state)
-            )
+            async for chunk in ctf_graph.astream(initial_state, stream_mode="updates"):
+                # chunk = {node_name: {state_keys_updated...}}
+                for node_name, node_output in chunk.items():
+                    last_state.update(node_output)
 
-            # Stream each step as it appears in final state
-            # (LangGraph doesn't natively stream state updates in sync mode,
-            #  so we re-emit steps from the final state with simulated delays)
-            steps = final_state.get("steps", [])
-            for step in steps:
-                yield _sse_event("agent_step", step)
-                await asyncio.sleep(0.3)  # visual delay for UX
+                    # Emitir los steps actualizados de este nodo
+                    steps_now = node_output.get("steps") or last_state.get("steps", [])
+                    for step in steps_now:
+                        step_node = step.get("node", "")
+                        step_status = step.get("status", "")
+                        step_key = f"{step_node}:{step_status}"
+                        if step_key not in emitted_nodes:
+                            emitted_nodes.add(step_key)
+                            yield _sse_event("agent_step", step)
 
-            # Final verdict event
+                    # Keep-alive: yield un comentario SSE para evitar timeout
+                    yield ": keep-alive\n\n"
+                    await asyncio.sleep(0)   # Ceder el event loop
+
+            # Final verdict event usando el último estado consolidado
             yield _sse_event("verdict", {
-                "verdict": final_state.get("verdict", "invalid"),
-                "score": final_state.get("score", 0),
-                "type": final_state.get("challenge_type", "unknown"),
-                "findings": final_state.get("findings", []),
-                "classification_reason": final_state.get("classification_reason", ""),
+                "verdict":                last_state.get("verdict", "invalid"),
+                "score":                  last_state.get("score", 0),
+                "type":                   last_state.get("challenge_type", "unknown"),
+                "findings":               last_state.get("findings", []),
+                "classification_reason":  last_state.get("classification_reason", ""),
             })
 
             yield _sse_event("done", {"message": "Pipeline completado"})

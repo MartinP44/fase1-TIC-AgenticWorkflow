@@ -7,6 +7,7 @@ import json
 import ollama
 from typing import Dict, Any, List
 from agents.state import CTFReviewState, AgentStep
+from agents.llm_debug import llm_chat
 
 
 OLLAMA_HOST  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -70,12 +71,14 @@ def semantic_refiner_node(state: CTFReviewState) -> dict:
     inferred_data = {}
     try:
         client = ollama.Client(host=OLLAMA_HOST)
-        response = client.chat(
+        response = llm_chat(
+            client,
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": "You are a precise data extractor. Respond only in JSON."},
                 {"role": "user",   "content": prompt},
             ],
+            node_name="semantic_refiner",
             format="json",
             options={"temperature": 0.0}
         )
