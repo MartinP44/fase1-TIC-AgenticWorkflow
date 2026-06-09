@@ -160,6 +160,19 @@ def schema_compiler_node(state: CTFReviewState) -> dict:
             for err in e.errors()
         ]
 
+    # Validar manualmente los patrones con lookaround (omitidos en Pydantic por usar Rust regex)
+    fields_spec = template_rules.get("validation_rules", {}).get("fields", {})
+    for field_name, rules in fields_spec.items():
+        pattern = rules.get("pattern")
+        if pattern and _has_lookaround(pattern):
+            val = parsed_metadata.get(field_name)
+            if val is not None and isinstance(val, str):
+                if not re.search(pattern, val):
+                    structural_errors.append({
+                        "field": field_name,
+                        "message": f"String should match pattern '{pattern}'"
+                    })
+
     steps[-1] = AgentStep(
         node="schema_compiler",
         status="completed",

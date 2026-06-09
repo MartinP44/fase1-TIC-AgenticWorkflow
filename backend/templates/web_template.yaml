@@ -41,9 +41,7 @@ validation_rules:
     docker_image:
       type: string
       required: true
-      # No usamos pattern con lookahead aquí porque Pydantic v2 usa el motor Rust
-      # que no soporta lookahead/lookbehind. La restricción :latest se valida
-      # en security_signatures (que usa el re de Python, sin esa limitación).
+      pattern: "^(?!.*:latest).*$"
   security_signatures:
     - name: no_latest_tag
       # Python re SI soporta lookahead, a diferencia de Pydantic v2 (motor Rust)
