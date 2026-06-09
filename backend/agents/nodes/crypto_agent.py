@@ -123,15 +123,18 @@ def _check_structural_rules(parsed: dict, content: str, severity_mode: str = "st
 def _llm_analysis(content: str) -> list:
     """Semantic analysis via Ollama SDK."""
     try:
+        from agents.llm_debug import llm_chat
         client  = ollama.Client(host=OLLAMA_HOST)
         preview = content[:3000] if len(content) > 3000 else content
 
-        response = client.chat(
+        response = llm_chat(
+            client,
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": f"Analyze this crypto CTF challenge template:\n\n{preview}"},
             ],
+            node_name="crypto_agent",
             format="json",
             options={"temperature": 0.1},
         )

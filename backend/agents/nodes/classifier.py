@@ -50,13 +50,16 @@ def classifier_node(state: CTFReviewState) -> CTFReviewState:
     preview = content[:4000] if len(content) > 4000 else content
 
     try:
+        from agents.llm_debug import llm_chat
         client = ollama.Client(host=OLLAMA_HOST)
-        response = client.chat(
+        response = llm_chat(
+            client,
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": f"Classify this CTF challenge:\n\n{preview}"},
             ],
+            node_name="classifier",
             format="json",
             options={"temperature": 0},
         )

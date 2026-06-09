@@ -1,30 +1,35 @@
 """
-LLM Debug Logger — Wrapper alrededor de ollama.Client.chat()
+LLM Debug Logger — Wrapper around ollama.Client.chat()
 
-Actívalo con: DEBUG_LLM=true en el .env
-
-Muestra en consola:
-  - El prompt de sistema y de usuario completo enviado al modelo
-  - La respuesta raw del LLM
-  - El tiempo de respuesta en ms
-  - Token count (si disponible)
-
-Uso:
-    from agents.llm_debug import llm_chat
-    response = llm_chat(client, model, messages, **kwargs)
+Shows in console and accumulates logs in a queue to stream to the frontend terminal.
 """
 
 import os
 import time
 import textwrap
 import json
+import queue
 from typing import Any
 
-# ── Configuración ──────────────────────────────────────────────────────────
-DEBUG_LLM    = os.getenv("DEBUG_LLM", "false").lower() in ("1", "true", "yes")
+# ── Configuration ──────────────────────────────────────────────────────────
+DEBUG_LLM    = os.getenv("DEBUG_LLM", "true").lower() in ("1", "true", "yes")
 DEBUG_COLOUR = os.getenv("DEBUG_COLOUR", "true").lower() in ("1", "true", "yes")
 
-# ── Colores ANSI ───────────────────────────────────────────────────────────
+# ── Global Thread-Safe Queue for Front-end ──────────────────────────────────
+_log_queue = queue.Queue()
+
+def get_new_logs() -> list[str]:
+    """Retrieve all accumulated logs and empty the queue."""
+    logs = []
+    while not _log_queue.empty():
+        logs.append(_log_queue.get())
+    return logs
+
+def add_to_log(text: str):
+    """Add a raw log message to the queue."""
+    _log_queue.put(text)
+
+# ── ANSI Colors ───────────────────────────────────────────────────────────
 class C:
     RESET  = "\033[0m"   if DEBUG_COLOUR else ""
     BOLD   = "\033[1m"   if DEBUG_COLOUR else ""
@@ -38,9 +43,9 @@ class C:
     GREY   = "\033[90m"  if DEBUG_COLOUR else ""
 
 
-# ── Helpers de formateo ────────────────────────────────────────────────────
+# ── Formatting Helpers ────────────────────────────────────────────────────
 def _box(title: str, content: str, colour: str = C.CYAN, width: int = 90) -> str:
-    """Dibuja un cuadro con título y contenido multilínea."""
+    """Draws a box with a title and multiline content."""
     bar    = "─" * width
     header = f"{colour}{C.BOLD}┌─ {title} {'─' * max(0, width - len(title) - 4)}┐{C.RESET}"
     body_lines = []
@@ -55,10 +60,10 @@ def _box(title: str, content: str, colour: str = C.CYAN, width: int = 90) -> str
 def _truncate(text: str, limit: int = 3000) -> str:
     if len(text) <= limit:
         return text
-    return text[:limit] + f"\n{C.GREY}... [{len(text) - limit} caracteres truncados]{C.RESET}"
+    return text[:limit] + f"\n... [{len(text) - limit} characters truncated]"
 
 
-# ── Función principal ──────────────────────────────────────────────────────
+# ── Main Wrapper Function ──────────────────────────────────────────────────
 def llm_chat(
     client,
     model: str,
@@ -67,32 +72,60 @@ def llm_chat(
     **kwargs
 ) -> dict:
     """
-    Wrapper de ollama.Client.chat() con debug logging.
-
-    Args:
-        client    : instancia de ollama.Client
-        model     : nombre del modelo (ej. 'llama3.1')
-        messages  : lista de mensajes [{role, content}]
-        node_name : nombre del nodo LangGraph (para el log)
-        **kwargs  : resto de parámetros para client.chat()
-
-    Returns:
-        La misma respuesta que retorna ollama.Client.chat()
+    Wrapper for ollama.Client.chat() with console debug logging and queueing for the frontend.
     """
+    # 1. Format and queue the request for the front-end
+    req_log_parts = []
+    req_log_parts.append(f">>> LLM CALL | Node: {node_name.upper()} | Model: {model}")
+    
+    for i, msg in enumerate(messages):
+        role = msg.get("role", "?").upper()
+        content = msg.get("content", "")
+        req_log_parts.append(f"--- {role} MESSAGE ({i+1}/{len(messages)}) ---")
+        req_log_parts.append(content)
+    
+    req_log_parts.append("=" * 60)
+    add_to_log("\n".join(req_log_parts))
+
+    # Also print to stdout if configured
     if DEBUG_LLM:
         _print_request(node_name, model, messages)
 
     t0 = time.perf_counter()
-    response = client.chat(model=model, messages=messages, **kwargs)
-    elapsed_ms = (time.perf_counter() - t0) * 1000
+    try:
+        response = client.chat(model=model, messages=messages, **kwargs)
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        
+        # 2. Format and queue the response
+        res_content = ""
+        try:
+            res_content = response["message"]["content"]
+            # Try to prettify if it's JSON
+            try:
+                parsed = json.loads(res_content)
+                res_content = json.dumps(parsed, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+        except Exception:
+            res_content = str(response)
 
-    if DEBUG_LLM:
-        _print_response(node_name, response, elapsed_ms)
+        res_log_parts = []
+        res_log_parts.append(f"<<< LLM RESPONSE | Node: {node_name.upper()} | Time: {elapsed_ms:.0f} ms")
+        res_log_parts.append(res_content)
+        res_log_parts.append("=" * 60 + "\n")
+        add_to_log("\n".join(res_log_parts))
 
-    return response
+        if DEBUG_LLM:
+            _print_response(node_name, response, elapsed_ms)
+            
+        return response
+    except Exception as e:
+        err_log = f"!!! LLM ERROR | Node: {node_name.upper()}\nError: {str(e)}\n" + "=" * 60
+        add_to_log(err_log)
+        raise e
 
 
-# ── Impresión de la petición ───────────────────────────────────────────────
+# ── Console Request Print ───────────────────────────────────────────────
 def _print_request(node_name: str, model: str, messages: list) -> None:
     sep = f"\n{C.GREY}{'━' * 90}{C.RESET}\n"
     print(sep)
@@ -118,7 +151,7 @@ def _print_request(node_name: str, model: str, messages: list) -> None:
         print()
 
 
-# ── Impresión de la respuesta ──────────────────────────────────────────────
+# ── Console Response Print ──────────────────────────────────────────────
 def _print_response(node_name: str, response: Any, elapsed_ms: float) -> None:
     raw_content = ""
     try:
@@ -126,7 +159,7 @@ def _print_response(node_name: str, response: Any, elapsed_ms: float) -> None:
     except (KeyError, TypeError):
         raw_content = str(response)
 
-    # Intentar pretty-print si es JSON
+    # Pretty-print JSON
     display_content = raw_content
     try:
         parsed = json.loads(raw_content)
@@ -134,7 +167,7 @@ def _print_response(node_name: str, response: Any, elapsed_ms: float) -> None:
     except Exception:
         pass
 
-    # Tokens (si el modelo los reporta)
+    # Tokens info
     token_info = ""
     try:
         usage = response.get("usage") or {}

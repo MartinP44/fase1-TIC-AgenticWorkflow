@@ -4,6 +4,7 @@ import { FileUploader } from './components/FileUploader'
 import { AgentFlow } from './components/AgentFlow'
 import { Verdict } from './components/Verdict'
 import { TemplateGuide } from './components/TemplateGuide'
+import { Terminal } from './components/Terminal'
 import type { AgentStep, VerdictData, ReviewPhase } from './types'
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
   const [steps, setSteps] = useState<AgentStep[]>([])
   const [verdict, setVerdict] = useState<VerdictData | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [logs, setLogs] = useState<string[]>([])
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile)
@@ -19,6 +21,7 @@ export default function App() {
     setSteps([])
     setVerdict(null)
     setErrorMsg(null)
+    setLogs([])
 
     const formData = new FormData()
     formData.append('file', selectedFile)
@@ -76,6 +79,17 @@ export default function App() {
       }
     })
 
+    eventSource.addEventListener('agent_log', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data && data.message) {
+          setLogs((prev) => [...prev, data.message])
+        }
+      } catch (e) {
+        console.error('Error parsing agent_log:', e)
+      }
+    })
+
     eventSource.addEventListener('done', () => {
       setPhase('done')
       eventSource.close()
@@ -109,6 +123,7 @@ export default function App() {
     setSteps([])
     setVerdict(null)
     setErrorMsg(null)
+    setLogs([])
     setPhase('idle')
   }
 
@@ -165,9 +180,10 @@ export default function App() {
             {verdict && <Verdict data={verdict} />}
           </div>
 
-          {/* Columna Derecha: Pipeline de Agentes */}
-          <div>
+          {/* Columna Derecha: Pipeline de Agentes y Consola */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <AgentFlow steps={steps} isStreaming={phase === 'streaming'} />
+            <Terminal logs={logs} />
           </div>
         </div>
       </main>

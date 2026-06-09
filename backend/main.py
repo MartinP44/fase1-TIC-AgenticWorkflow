@@ -140,9 +140,19 @@ async def stream_review(job_id: str):
                             emitted_nodes.add(step_key)
                             yield _sse_event("agent_step", step)
 
+                    # Emitir logs de Ollama acumulados
+                    from agents.llm_debug import get_new_logs
+                    for log_msg in get_new_logs():
+                        yield _sse_event("agent_log", {"message": log_msg})
+
                     # Keep-alive: yield un comentario SSE para evitar timeout
                     yield ": keep-alive\n\n"
                     await asyncio.sleep(0)   # Ceder el event loop
+
+            # Emitir cualquier log final que haya quedado en cola
+            from agents.llm_debug import get_new_logs
+            for log_msg in get_new_logs():
+                yield _sse_event("agent_log", {"message": log_msg})
 
             # Final verdict event usando el último estado consolidado
             yield _sse_event("verdict", {

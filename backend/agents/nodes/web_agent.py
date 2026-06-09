@@ -179,15 +179,18 @@ def _check_security_patterns(content: str) -> list:
 def _llm_analysis(content: str) -> list:
     """Semantic analysis via Ollama SDK — no LangChain."""
     try:
+        from agents.llm_debug import llm_chat
         client  = ollama.Client(host=OLLAMA_HOST)
         preview = content[:3000] if len(content) > 3000 else content
 
-        response = client.chat(
+        response = llm_chat(
+            client,
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": f"Analyze this web CTF challenge template:\n\n{preview}"},
             ],
+            node_name="web_agent",
             format="json",
             options={"temperature": 0.1},
         )
