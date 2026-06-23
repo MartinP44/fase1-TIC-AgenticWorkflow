@@ -53,4 +53,5 @@ class CTFReviewState(TypedDict):
     agent_logs: List[str]
     iteration: int                      # Para el loop de autocorrección semántica
     parsed_metadata: Optional[dict]     # Metadatos unificados leídos o inferidos
+    magic_blocked: Optional[bool]       # True si el workflow fue bloqueado por mismatch de firma
 

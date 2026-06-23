@@ -11,6 +11,19 @@ from agents.nodes.semantic_refiner import semantic_refiner_node
 from agents.nodes.verdict import verdict_node
 
 
+def route_after_extractor(state: CTFReviewState) -> str:
+    """
+    Ruteo condicional inmediatamente después del extractor.
+
+    Si se detectó un mismatch CRÍTICO de firma (magic numbers), el workflow
+    se termina aquí — no se ejecuta ningún agente posterior.
+    De lo contrario, el flujo continúa normalmente a schema_compiler.
+    """
+    if state.get("magic_blocked"):
+        return END  # 🚨 Firma inválida — pipeline bloqueado
+    return "schema_compiler"
+
+
 def route_after_agent(state: CTFReviewState) -> str:
     """
     Ruteo condicional después de la ejecución del agente generalizado.
@@ -43,9 +56,16 @@ def build_graph() -> StateGraph:
     graph.set_entry_point("extractor")
 
     # ── Edges ─────────────────────────────────────────────────────────────────
-    # Ingesta -> Compilación y validación de esquema
-    graph.add_edge("extractor", "schema_compiler")
-    
+    # Ingesta → ruteo condicional: si magic_blocked → END, si no → schema_compiler
+    graph.add_conditional_edges(
+        "extractor",
+        route_after_extractor,
+        {
+            "schema_compiler": "schema_compiler",
+            END: END,
+        }
+    )
+
     # Compilador -> Agente Generalizado (Regex, Warnings, LLM Semántico)
     graph.add_edge("schema_compiler", "generalized_agent")
 

@@ -117,6 +117,7 @@ async def stream_review(job_id: str):
                 agent_logs=[],
                 iteration=0,
                 parsed_metadata=None,
+                magic_blocked=False,
             )
 
             # ── Streaming nodo a nodo con astream ─────────────────────────
